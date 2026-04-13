@@ -255,7 +255,12 @@
   <h1>Thai Typing Tutor</h1>
   <!-- Lesson selection screen -->
   <div id="lesson-screen">
-    <h2>Lessons</h2>
+    <div style="display:flex;justify-content:space-between;align-items:center;max-width:600px;width:100%">
+      <h2 style="margin:0">Lessons</h2>
+      <button id="weak-chars-btn" style="padding:6px 14px;font-size:0.85rem;background:none;border:1px solid #1976D2;color:#1976D2;border-radius:4px;cursor:pointer">Summary</button>
+    </div>
+    <div id="weak-chars-panel" style="display:none;margin:12px 0 16px;padding:16px;background:white;border:2px solid #1976D2;border-radius:8px;max-width:600px;width:100%">
+    </div>
     <ul class="lesson-list" id="lesson-list"></ul>
   </div>
 
@@ -319,6 +324,11 @@
       { id: 5, name: 'Lesson 5', newChars: 'เ ย ข ป', words: ['เงิน', 'ขาย', 'ปาก', 'เขา', 'เปล', 'ขยาย', 'ปลา', 'เมย'] },
       { id: 6, name: 'Lesson 6', newChars: '็ ุ ู ไ', words: ['ไม้', 'กุน', 'ดูก', 'ไหม', 'สุด', 'รู้', 'ไกล', 'หมุน'] },
       { id: 7, name: 'Lesson 7', newChars: 'พ บ ช ท ค', words: ['พบ', 'ชาย', 'คนดี', 'ทาง', 'บาท', 'พาย', 'ชน', 'ทุก'] },
+      { id: 8, name: 'Lesson 8', newChars: 'Greetings', words: ['สวัสดี', 'ขอบคุณ', 'สบายดี', 'ยินดี', 'หวัดดี'] },
+      { id: 9, name: 'Lesson 9', newChars: 'Questions', words: ['เป็นยังไง', 'ไปไหน', 'ทำอะไร', 'กินข้าว', 'ได้ไหม'] },
+      { id: 10, name: 'Lesson 10', newChars: 'Responses', words: ['ไม่เป็นไร', 'ได้เลย', 'ไม่ได้', 'โอเค', 'ดีเลย'] },
+      { id: 11, name: 'Lesson 11', newChars: 'Plans', words: ['ไปด้วยกัน', 'เจอกัน', 'รอแป๊บ', 'ไปกินข้าว', 'เย็นนี้'] },
+      { id: 12, name: 'Lesson 12', newChars: 'Farewell', words: ['แล้วเจอกัน', 'บายๆ', 'ฝากด้วย', 'ไว้คุยกัน', 'ลาก่อน'] },
     ];
 
     // Reverse lookup: Thai char -> English key
@@ -785,6 +795,64 @@
 
     document.getElementById('restart-btn').addEventListener('click', startExercise);
     document.getElementById('back-to-lessons').addEventListener('click', showLessonScreen);
+
+    document.getElementById('weak-chars-btn').addEventListener('click', () => {
+      const panel = document.getElementById('weak-chars-panel');
+      if (panel.style.display !== 'none') {
+        panel.style.display = 'none';
+        return;
+      }
+      const progress = loadProgress();
+      const stats = progress.charStats || {};
+      const entries = Object.entries(stats)
+        .map(([ch, s]) => ({ ch, acc: s.hits / (s.hits + s.misses), hits: s.hits, misses: s.misses }))
+        .sort((a, b) => a.acc - b.acc);
+
+      let html = '';
+      if (entries.length === 0) {
+        html = '<div style="color:#888;text-align:center">No data yet — complete some exercises first!</div>';
+      } else {
+        const top5 = entries.slice(0, 5);
+        html = '<div style="font-weight:bold;margin-bottom:8px;color:#333">Top 5 Weak Characters</div>';
+        html += '<table style="width:100%;text-align:center;border-collapse:collapse">';
+        html += '<tr style="color:#888;font-size:0.8rem"><th>Character</th><th>Accuracy</th><th>Correct</th><th>Wrong</th></tr>';
+        for (const e of top5) {
+          const accPct = Math.round(e.acc * 100);
+          const color = accPct >= 80 ? '#4CAF50' : accPct >= 50 ? '#FF9800' : '#e53935';
+          const engKey = THAI_TO_KEY[e.ch] || '?';
+          html += `<tr>
+            <td style="font-size:1.4rem;padding:6px">${e.ch} <span style="font-size:0.75rem;color:#1976D2">(${engKey})</span></td>
+            <td style="color:${color};font-weight:bold">${accPct}%</td>
+            <td style="color:#4CAF50">${e.hits}</td>
+            <td style="color:#e53935">${e.misses}</td>
+          </tr>`;
+        }
+        html += '</table>';
+      }
+      html += `<div style="margin-top:16px;display:flex;gap:8px;justify-content:center">
+        <button id="reset-stats-btn" style="padding:6px 14px;font-size:0.8rem;background:none;border:1px solid #FF9800;color:#FF9800;border-radius:4px;cursor:pointer">Reset Stats Only</button>
+        <button id="reset-all-btn" style="padding:6px 14px;font-size:0.8rem;background:none;border:1px solid #e53935;color:#e53935;border-radius:4px;cursor:pointer">Reset Everything</button>
+      </div>`;
+      panel.innerHTML = html;
+
+      document.getElementById('reset-stats-btn').addEventListener('click', () => {
+        if (!confirm('Reset all character accuracy stats? Your lesson progress will be kept.')) return;
+        const progress = loadProgress();
+        progress.charStats = {};
+        saveProgress(progress);
+        panel.style.display = 'none';
+        document.getElementById('weak-chars-btn').click();
+      });
+
+      document.getElementById('reset-all-btn').addEventListener('click', () => {
+        if (!confirm('Reset everything? This will lock all lessons and clear all stats.')) return;
+        localStorage.removeItem('thaiTyperProgress');
+        panel.style.display = 'none';
+        renderLessonList();
+      });
+
+      panel.style.display = 'block';
+    });
 
     // Enter key to advance when exercise is done
     document.addEventListener('keydown', (e) => {
