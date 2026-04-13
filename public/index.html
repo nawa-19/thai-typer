@@ -450,12 +450,47 @@
     }
 
     // --- Exercise ---
-    function startLesson(lesson) {
+    function getUnlockedChars(lesson) {
+      // All characters from lesson 1 up to and including this lesson
+      const idx = LESSONS.findIndex(l => l.id === lesson.id);
+      let chars = '';
+      for (let i = 0; i <= idx; i++) {
+        chars += LESSONS[i].newChars.replace(/ /g, '');
+      }
+      return chars;
+    }
+
+    let aiWords = []; // extra words from API
+
+    async function fetchAIWords(lesson) {
+      try {
+        const chars = getUnlockedChars(lesson);
+        const resp = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ characters: chars, count: 8 })
+        });
+        if (!resp.ok) throw new Error('API error');
+        const data = await resp.json();
+        // Filter: only keep words that use allowed characters
+        const allowed = new Set([...chars, ' ']);
+        aiWords = (data.words || []).filter(w =>
+          [...w].every(ch => allowed.has(ch))
+        );
+      } catch (e) {
+        console.log('AI generation unavailable, using static words:', e.message);
+        aiWords = [];
+      }
+    }
+
+    async function startLesson(lesson) {
       currentLesson = lesson;
       currentRound = 0;
       roundResults = [];
       lessonScreen.style.display = 'none';
       exerciseScreen.style.display = 'flex';
+      // Fetch AI words in background, don't block
+      fetchAIWords(lesson);
       startExercise();
     }
 
@@ -471,11 +506,12 @@
     }
 
     function pickExerciseText() {
-      const words = currentLesson.words;
+      // Combine static lesson words with AI-generated words
+      const allWords = [...currentLesson.words, ...aiWords];
       const count = 2 + Math.floor(Math.random() * 2); // 2 or 3 words
       const picked = [];
       for (let i = 0; i < count; i++) {
-        picked.push(weightedRandomPick(words));
+        picked.push(weightedRandomPick(allWords));
       }
       return picked.join(' ');
     }
