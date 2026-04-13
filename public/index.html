@@ -156,6 +156,19 @@
 
       const mapped = e.shiftKey ? KEDMANEE_SHIFT[e.key] : KEDMANEE[e.key];
 
+      if (e.key === 'Backspace') {
+        if (keyHistory.lastChild) keyHistory.removeChild(keyHistory.lastChild);
+        return;
+      }
+
+      if (e.key === ' ') {
+        const entry = document.createElement('span');
+        entry.className = 'key-entry';
+        entry.innerHTML = `<span style="width:12px;display:inline-block"></span>`;
+        keyHistory.appendChild(entry);
+        return;
+      }
+
       if (mapped) {
         e.preventDefault();
         document.execCommand('insertText', false, mapped);
