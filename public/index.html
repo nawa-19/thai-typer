@@ -354,6 +354,7 @@
     let targetText = '';
     let typed = [];
     let keyLog = [];
+    let charTimes = []; // timestamp per character typed
     let startTime = null;
     let exerciseDone = false;
 
@@ -436,6 +437,7 @@
       targetText = pickExerciseText();
       typed = [];
       keyLog = [];
+      charTimes = [];
       startTime = null;
       exerciseDone = false;
       typingArea.textContent = '';
@@ -505,6 +507,36 @@
       positionRow.innerHTML = posHTML;
     }
 
+    function calcTimingStats() {
+      // Per-character: time between consecutive characters (skip spaces)
+      const charDeltas = [];
+      for (let i = 0; i < charTimes.length; i++) {
+        if (targetText[i] === ' ') continue;
+        const prev = i === 0 ? startTime : charTimes[i - 1];
+        charDeltas.push((charTimes[i] - prev) / 1000);
+      }
+      const avgPerChar = charDeltas.length > 0
+        ? (charDeltas.reduce((a, b) => a + b, 0) / charDeltas.length).toFixed(2)
+        : '0';
+
+      // Per-word: split target into words, sum char times per word
+      const words = targetText.split(' ');
+      const wordTimes = [];
+      let charIdx = 0;
+      for (const word of words) {
+        if (word.length === 0) { charIdx++; continue; }
+        const wordStart = charIdx === 0 ? startTime : charTimes[charIdx - 1];
+        const wordEnd = charTimes[charIdx + word.length - 1];
+        if (wordEnd) wordTimes.push((wordEnd - wordStart) / 1000);
+        charIdx += word.length + 1; // +1 for space
+      }
+      const avgPerWord = wordTimes.length > 0
+        ? (wordTimes.reduce((a, b) => a + b, 0) / wordTimes.length).toFixed(2)
+        : '0';
+
+      return { avgPerChar, avgPerWord };
+    }
+
     function showSummary() {
       exerciseDone = true;
       if (!startTime) startTime = Date.now();
@@ -514,17 +546,23 @@
         if (typed[i] === targetText[i]) correct++;
       }
       const acc = Math.round((correct / targetText.length) * 100);
-      const passed = acc >= 80;
+      const timing = calcTimingStats();
+      const tooSlow = parseFloat(timing.avgPerChar) > 4;
+      const passed = acc >= 80 && !tooSlow;
 
       if (!passed) {
         // Failed this round — must redo
         summaryEl.innerHTML = `
           <h2>Round ${currentRound}/${ROUNDS_PER_LESSON}</h2>
           <div class="stats">
-            Accuracy: <span>${acc}</span>% — Need 80% to pass<br>
-            Time: <span>${elapsed}</span> seconds
+            Accuracy: <span>${acc}</span>%<br>
+            Time: <span>${elapsed}</span>s &nbsp; Avg/char: <span>${timing.avgPerChar}</span>s &nbsp; Avg/word: <span>${timing.avgPerWord}</span>s
           </div>
-          <div style="color:#e53935;font-weight:bold;margin-top:12px">Try this round again!</div>
+          <div style="color:#e53935;font-weight:bold;margin-top:12px">
+            ${acc < 80 ? 'Need 80% accuracy to pass.' : ''}
+            ${tooSlow ? 'Too slow — need under 4s per character.' : ''}
+            Try again!
+          </div>
           <button id="restart-btn" style="margin-top:16px;padding:10px 24px;font-size:1rem;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer">
             Retry Round (Enter)
           </button>
@@ -538,7 +576,7 @@
       }
 
       // Passed this round
-      roundResults.push({ accuracy: acc, time: parseFloat(elapsed) });
+      roundResults.push({ accuracy: acc, time: parseFloat(elapsed), avgPerChar: parseFloat(timing.avgPerChar), avgPerWord: parseFloat(timing.avgPerWord) });
 
       if (currentRound < ROUNDS_PER_LESSON) {
         // More rounds to go
@@ -546,7 +584,7 @@
           <h2>Round ${currentRound}/${ROUNDS_PER_LESSON}</h2>
           <div class="stats">
             Accuracy: <span>${acc}</span>%<br>
-            Time: <span>${elapsed}</span> seconds
+            Time: <span>${elapsed}</span>s &nbsp; Avg/char: <span>${timing.avgPerChar}</span>s &nbsp; Avg/word: <span>${timing.avgPerWord}</span>s
           </div>
           <div style="color:#4CAF50;font-weight:bold;margin-top:12px">Passed!</div>
           <button id="restart-btn" style="margin-top:16px;padding:10px 24px;font-size:1rem;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer">
@@ -559,6 +597,8 @@
         // All rounds done — show lesson summary
         const avgAcc = Math.round(roundResults.reduce((s, r) => s + r.accuracy, 0) / roundResults.length);
         const avgTime = (roundResults.reduce((s, r) => s + r.time, 0) / roundResults.length).toFixed(1);
+        const avgCharTime = (roundResults.reduce((s, r) => s + r.avgPerChar, 0) / roundResults.length).toFixed(2);
+        const avgWordTime = (roundResults.reduce((s, r) => s + r.avgPerWord, 0) / roundResults.length).toFixed(2);
 
         const progress = loadProgress();
         if (!progress.passed.includes(currentLesson.id)) {
@@ -567,7 +607,7 @@
         }
 
         const extraInfo = roundResults.map((r, i) =>
-          `Round ${i + 1}: ${r.accuracy}% — ${r.time}s`
+          `Round ${i + 1}: ${r.accuracy}% — ${r.time}s (${r.avgPerChar}s/char, ${r.avgPerWord}s/word)`
         ).join('<br>');
 
         const nextIdx = LESSONS.findIndex(l => l.id === currentLesson.id) + 1;
@@ -577,7 +617,7 @@
           <h2>Lesson Complete!</h2>
           <div class="stats">
             Average Accuracy: <span>${avgAcc}</span>%<br>
-            Average Time: <span>${avgTime}</span>s<br><br>
+            Average Time: <span>${avgTime}</span>s &nbsp; Avg/char: <span>${avgCharTime}</span>s &nbsp; Avg/word: <span>${avgWordTime}</span>s<br><br>
             ${extraInfo}
           </div>
           <div style="color:#4CAF50;font-weight:bold;margin-top:12px">
@@ -618,6 +658,7 @@
         if (typed.length > 0) {
           typed.pop();
           keyLog.pop();
+          charTimes.pop();
           renderTarget();
           renderTracker();
         }
@@ -629,6 +670,7 @@
         e.preventDefault();
         if (typed.length >= targetText.length) return;
         if (!startTime) startTime = Date.now();
+        charTimes.push(Date.now());
         typed.push(' ');
         keyLog.push(' ');
         document.execCommand('insertText', false, ' ');
@@ -646,6 +688,7 @@
       if (!startTime) startTime = Date.now();
 
       const englishKey = e.shiftKey ? e.key : e.key;
+      charTimes.push(Date.now());
       typed.push(mapped);
       keyLog.push(englishKey);
       document.execCommand('insertText', false, mapped);
