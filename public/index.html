@@ -332,13 +332,51 @@
     THAI_TO_KEY[' '] = '␣';
 
     // Progress from localStorage
+    // charStats: { "ก": { hits: 10, misses: 2 }, ... }
     function loadProgress() {
       try {
-        return JSON.parse(localStorage.getItem('thaiTyperProgress')) || { passed: [] };
-      } catch { return { passed: [] }; }
+        const p = JSON.parse(localStorage.getItem('thaiTyperProgress'));
+        if (!p) return { passed: [], charStats: {} };
+        if (!p.charStats) p.charStats = {};
+        return p;
+      } catch { return { passed: [], charStats: {} }; }
     }
     function saveProgress(progress) {
       localStorage.setItem('thaiTyperProgress', JSON.stringify(progress));
+    }
+
+    function updateCharStats(targetText, typed) {
+      const progress = loadProgress();
+      for (let i = 0; i < targetText.length; i++) {
+        const ch = targetText[i];
+        if (ch === ' ') continue;
+        if (!progress.charStats[ch]) progress.charStats[ch] = { hits: 0, misses: 0 };
+        if (i < typed.length && typed[i] === ch) {
+          progress.charStats[ch].hits++;
+        } else {
+          progress.charStats[ch].misses++;
+        }
+      }
+      saveProgress(progress);
+    }
+
+    function getCharAccuracy(ch) {
+      const progress = loadProgress();
+      const stats = progress.charStats[ch];
+      if (!stats || (stats.hits + stats.misses) === 0) return 0.5; // unknown = mid priority
+      return stats.hits / (stats.hits + stats.misses);
+    }
+
+    function getWordWeight(word) {
+      // Words with weaker characters get higher weight
+      let totalWeight = 0;
+      for (const ch of word) {
+        if (ch === ' ') continue;
+        const acc = getCharAccuracy(ch);
+        // Lower accuracy = higher weight. Range: 1 (perfect) to 5 (never correct)
+        totalWeight += (1 - acc) * 4 + 1;
+      }
+      return totalWeight;
     }
 
     // Screen elements
@@ -421,13 +459,23 @@
       startExercise();
     }
 
+    function weightedRandomPick(words) {
+      const weights = words.map(w => getWordWeight(w));
+      const total = weights.reduce((a, b) => a + b, 0);
+      let r = Math.random() * total;
+      for (let i = 0; i < words.length; i++) {
+        r -= weights[i];
+        if (r <= 0) return words[i];
+      }
+      return words[words.length - 1];
+    }
+
     function pickExerciseText() {
-      // Pick 2-3 random words from the lesson
       const words = currentLesson.words;
       const count = 2 + Math.floor(Math.random() * 2); // 2 or 3 words
       const picked = [];
       for (let i = 0; i < count; i++) {
-        picked.push(words[Math.floor(Math.random() * words.length)]);
+        picked.push(weightedRandomPick(words));
       }
       return picked.join(' ');
     }
@@ -539,6 +587,7 @@
 
     function showSummary() {
       exerciseDone = true;
+      updateCharStats(targetText, typed);
       if (!startTime) startTime = Date.now();
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       let correct = 0;
