@@ -27,58 +27,145 @@
       margin-bottom: 20px;
       font-weight: bold;
     }
-    #mode-indicator.thai {
-      background: #4CAF50;
-      color: white;
+    #mode-indicator.thai { background: #4CAF50; color: white; }
+    #mode-indicator.english { background: #999; color: white; }
+
+    #target-text {
+      width: 100%;
+      max-width: 600px;
+      padding: 16px 20px;
+      font-size: 1.8rem;
+      line-height: 1.8;
+      background: #fff;
+      border: 2px solid #ddd;
+      border-radius: 8px 8px 0 0;
+      border-bottom: none;
+      letter-spacing: 2px;
     }
-    #mode-indicator.english {
-      background: #999;
-      color: white;
-    }
+    #target-text .correct { color: #4CAF50; }
+    #target-text .wrong { color: #e53935; text-decoration: underline wavy #e53935; }
+    #target-text .current { text-decoration: underline; text-underline-offset: 4px; }
+    #target-text .upcoming { color: #999; }
+
     #typing-area {
       width: 100%;
       max-width: 600px;
-      min-height: 200px;
-      padding: 20px;
+      min-height: 80px;
+      padding: 16px 20px;
       font-size: 1.8rem;
       line-height: 1.8;
       border: 2px solid #ddd;
-      border-radius: 8px;
-      background: white;
+      border-radius: 0 0 8px 8px;
+      background: #fafafa;
       outline: none;
       white-space: pre-wrap;
       word-wrap: break-word;
+      letter-spacing: 2px;
     }
-    #typing-area:focus {
-      border-color: #4CAF50;
-    }
-    #key-history {
+    #typing-area:focus { border-color: #4CAF50; }
+
+    #key-tracker {
       margin-top: 16px;
-      font-size: 0.95rem;
-      color: #555;
-      min-height: 1.5em;
       max-width: 600px;
       width: 100%;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .key-entry {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .key-entry .key-label {
-      background: #e0e0e0;
-      padding: 1px 6px;
-      border-radius: 3px;
       font-family: monospace;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    #correction-row, #keys-row, #position-row {
+      display: flex;
+      gap: 0;
+    }
+    .track-cell {
+      width: 24px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .track-cell.correct-hint { color: #1976D2; font-weight: bold; }
+    .track-cell.key-normal { color: #555; }
+    .track-cell.key-error { color: #e53935; font-weight: bold; }
+    .track-cell.pos-num { color: #aaa; font-size: 0.75rem; }
+
+    #summary {
+      margin-top: 24px;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      border: 2px solid #4CAF50;
+      max-width: 600px;
+      width: 100%;
+      display: none;
+      text-align: center;
+    }
+    #summary h2 { margin: 0 0 12px; color: #333; }
+    #summary .stats { font-size: 1.2rem; color: #555; }
+    #summary .stats span { font-weight: bold; color: #333; }
+    #restart-btn {
+      margin-top: 16px;
+      padding: 10px 24px;
+      font-size: 1rem;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    #restart-btn:hover { background: #43A047; }
+
+    #keyboard {
+      margin-top: 24px;
+      max-width: 700px;
+      width: 100%;
+    }
+    .kb-row {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .kb-key {
+      width: 44px;
+      height: 48px;
       border: 1px solid #ccc;
+      border-radius: 5px;
+      background: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      position: relative;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
-    .key-entry .thai-char {
-      font-size: 1.1rem;
+    .kb-key .thai-main {
+      font-size: 1rem;
+      line-height: 1;
     }
+    .kb-key .thai-shift {
+      font-size: 0.65rem;
+      color: #999;
+      line-height: 1;
+    }
+    .kb-key .eng-label {
+      font-size: 0.85rem;
+      color: #1976D2;
+      position: absolute;
+      bottom: 2px;
+      right: 3px;
+      font-family: monospace;
+      font-weight: bold;
+    }
+    .kb-key.active {
+      background: #4CAF50;
+      border-color: #388E3C;
+      box-shadow: 0 0 8px rgba(76,175,80,0.5);
+    }
+    .kb-key.active .thai-main { color: white; }
+    .kb-key.active .thai-shift { color: rgba(255,255,255,0.7); }
+    .kb-key.active .eng-label { color: rgba(255,255,255,0.8); }
+    .kb-key.wide { width: 66px; }
+    .kb-key.space { width: 240px; }
+
     .hint {
       margin-top: 12px;
       color: #888;
@@ -89,8 +176,22 @@
 <body>
   <h1>Thai Typing Tutor</h1>
   <div id="mode-indicator" class="thai">TH</div>
+  <div id="target-text"></div>
   <div id="typing-area" contenteditable="true" autofocus></div>
-  <div id="key-history"></div>
+  <div id="key-tracker">
+    <div id="correction-row"></div>
+    <div id="keys-row"></div>
+    <div id="position-row"></div>
+  </div>
+  <div id="summary">
+    <h2>Summary</h2>
+    <div class="stats">
+      Accuracy: <span id="accuracy">0</span>%<br>
+      Time: <span id="time-taken">0</span> seconds
+    </div>
+    <button id="restart-btn">Try Again</button>
+  </div>
+  <div id="keyboard"></div>
   <div class="hint">Esc = สลับ TH / EN</div>
 
   <script>
@@ -120,28 +221,122 @@
       'M': '?', '<': 'ฒ', '>': 'ฬ', '?': 'ฦ'
     };
 
-    let thaiMode = true;
-    const modeIndicator = document.getElementById('mode-indicator');
-    const typingArea = document.getElementById('typing-area');
-    const keyHistory = document.getElementById('key-history');
+    // Reverse lookup: Thai char -> English key
+    const THAI_TO_KEY = {};
+    for (const [eng, thai] of Object.entries(KEDMANEE)) {
+      THAI_TO_KEY[thai] = eng;
+    }
+    for (const [eng, thai] of Object.entries(KEDMANEE_SHIFT)) {
+      THAI_TO_KEY[thai] = 'Shift+' + eng;
+    }
+    THAI_TO_KEY[' '] = '␣';
 
-    function addKeyToHistory(englishKey, thaiChar) {
-      const label = englishKey === ' ' ? 'Space' : englishKey;
-      const entry = document.createElement('span');
-      entry.className = 'key-entry';
-      entry.innerHTML = `<span class="key-label">${label}</span>`;
-      keyHistory.appendChild(entry);
-      keyHistory.scrollLeft = keyHistory.scrollWidth;
+    // Exercise state
+    const SAMPLE_TEXTS = ['กด นก', 'กาว นาม', 'นก กด มา', 'สาร ดาว กาม'];
+    let targetText = '';
+    let typed = [];
+    let keyLog = [];
+    let startTime = null;
+    let exerciseDone = false;
+
+    const targetEl = document.getElementById('target-text');
+    const typingArea = document.getElementById('typing-area');
+    const correctionRow = document.getElementById('correction-row');
+    const keysRow = document.getElementById('keys-row');
+    const positionRow = document.getElementById('position-row');
+    const summaryEl = document.getElementById('summary');
+    const modeIndicator = document.getElementById('mode-indicator');
+
+    let thaiMode = true;
+
+    function startExercise() {
+      targetText = SAMPLE_TEXTS[Math.floor(Math.random() * SAMPLE_TEXTS.length)];
+      typed = [];
+      keyLog = [];
+      startTime = null;
+      exerciseDone = false;
+      typingArea.textContent = '';
+      summaryEl.style.display = 'none';
+      renderTarget();
+      renderTracker();
+      typingArea.focus();
+    }
+
+    function renderTarget() {
+      let html = '';
+      for (let i = 0; i < targetText.length; i++) {
+        const ch = targetText[i];
+        if (i < typed.length) {
+          if (typed[i] === ch) {
+            html += `<span class="correct">${ch}</span>`;
+          } else {
+            html += `<span class="wrong">${ch}</span>`;
+          }
+        } else if (i === typed.length) {
+          html += `<span class="current">${ch}</span>`;
+        } else {
+          html += `<span class="upcoming">${ch}</span>`;
+        }
+      }
+      targetEl.innerHTML = html;
+    }
+
+    function renderTracker() {
+      let corrHTML = '';
+      let keysHTML = '';
+      let posHTML = '';
+
+      for (let i = 0; i < typed.length; i++) {
+        const isSpace = targetText[i] === ' ';
+        const isCorrect = typed[i] === targetText[i];
+
+        // Correction row: blue correct key only on errors
+        if (isSpace) {
+          corrHTML += `<div class="track-cell">&nbsp;</div>`;
+        } else if (!isCorrect) {
+          const correctKey = THAI_TO_KEY[targetText[i]] || '?';
+          corrHTML += `<div class="track-cell correct-hint">${correctKey}</div>`;
+        } else {
+          corrHTML += `<div class="track-cell">&nbsp;</div>`;
+        }
+
+        // Keys row: the English key pressed
+        if (isSpace) {
+          keysHTML += `<div class="track-cell">&nbsp;</div>`;
+        } else {
+          const cls = isCorrect ? 'key-normal' : 'key-error';
+          keysHTML += `<div class="track-cell ${cls}">${keyLog[i]}</div>`;
+        }
+
+        // Position row
+        if (isSpace) {
+          posHTML += `<div class="track-cell">&nbsp;</div>`;
+        } else {
+          posHTML += `<div class="track-cell pos-num">${i + 1}</div>`;
+        }
+      }
+
+      correctionRow.innerHTML = corrHTML;
+      keysRow.innerHTML = keysHTML;
+      positionRow.innerHTML = posHTML;
+    }
+
+    function showSummary() {
+      exerciseDone = true;
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      let correct = 0;
+      for (let i = 0; i < targetText.length; i++) {
+        if (typed[i] === targetText[i]) correct++;
+      }
+      const acc = Math.round((correct / targetText.length) * 100);
+      document.getElementById('accuracy').textContent = acc;
+      document.getElementById('time-taken').textContent = elapsed;
+      summaryEl.style.display = 'block';
     }
 
     function updateModeIndicator() {
-      if (thaiMode) {
-        modeIndicator.textContent = 'TH';
-        modeIndicator.className = 'thai';
-      } else {
-        modeIndicator.textContent = 'EN';
-        modeIndicator.className = 'english';
-      }
+      modeIndicator.textContent = thaiMode ? 'TH' : 'EN';
+      modeIndicator.className = thaiMode ? 'thai' : 'english';
     }
 
     typingArea.addEventListener('keydown', (e) => {
@@ -152,31 +347,119 @@
         return;
       }
 
-      if (!thaiMode) return;
-
-      const mapped = e.shiftKey ? KEDMANEE_SHIFT[e.key] : KEDMANEE[e.key];
+      if (!thaiMode || exerciseDone) return;
 
       if (e.key === 'Backspace') {
-        if (keyHistory.lastChild) keyHistory.removeChild(keyHistory.lastChild);
+        if (typed.length > 0) {
+          typed.pop();
+          keyLog.pop();
+          renderTarget();
+          renderTracker();
+        }
         return;
       }
 
+      // Space handling
       if (e.key === ' ') {
-        const entry = document.createElement('span');
-        entry.className = 'key-entry';
-        entry.innerHTML = `<span style="width:12px;display:inline-block"></span>`;
-        keyHistory.appendChild(entry);
+        e.preventDefault();
+        if (typed.length >= targetText.length) return;
+        if (!startTime) startTime = Date.now();
+        typed.push(' ');
+        keyLog.push(' ');
+        document.execCommand('insertText', false, ' ');
+        renderTarget();
+        renderTracker();
+        if (typed.length === targetText.length) showSummary();
         return;
       }
 
-      if (mapped) {
-        e.preventDefault();
-        document.execCommand('insertText', false, mapped);
-        addKeyToHistory(e.shiftKey ? 'Shift+' + e.key : e.key, mapped);
-      }
+      const mapped = e.shiftKey ? KEDMANEE_SHIFT[e.key] : KEDMANEE[e.key];
+      if (!mapped) return;
+      if (typed.length >= targetText.length) return;
+
+      e.preventDefault();
+      if (!startTime) startTime = Date.now();
+
+      const englishKey = e.shiftKey ? e.key : e.key;
+      typed.push(mapped);
+      keyLog.push(englishKey);
+      document.execCommand('insertText', false, mapped);
+      renderTarget();
+      renderTracker();
+
+      if (typed.length === targetText.length) showSummary();
     });
 
-    typingArea.focus();
+    document.getElementById('restart-btn').addEventListener('click', startExercise);
+
+    // Keyboard layout: each row is an array of [englishKey, thaiNormal, thaiShift]
+    const KB_ROWS = [
+      [['`','_','%'],['1','ๅ','+'],['2','/','๑'],['3','-','๒'],['4','ภ','๓'],['5','ถ','๔'],['6','ุ','ู'],['7','ึ','฿'],['8','ค','๕'],['9','ต','๖'],['0','จ','๗'],['-','ข','๘'],['=','ช','๙']],
+      [['q','ๆ','๐'],['w','ไ','"'],['e','ำ','ฎ'],['r','พ','ฑ'],['t','ะ','ธ'],['y','ั','ํ'],['u','ี','๊'],['i','ร','ณ'],['o','น','ฯ'],['p','ย','ญ'],['[','บ','ฐ'],[']','ล',','],['\\','ฃ','ฅ']],
+      [['a','ฟ','ฤ'],['s','ห','ฆ'],['d','ก','ฏ'],['f','ด','โ'],['g','เ','ฌ'],['h','้','็'],['j','่','๋'],['k','า','ษ'],['l','ส','ศ'],[';','ว','ซ'],["'",'ง','.']],
+      [['z','ผ','('],['x','ป',')'],['c','แ','ฉ'],['v','อ','ฮ'],['b','ิ','ฺ'],['n','ื','์'],['m','ท','?'],[',','ม','ฒ'],['.','ใ','ฬ'],['/','ฝ','ฦ']],
+      [['space',' ',' ']]
+    ];
+
+    const keyboardEl = document.getElementById('keyboard');
+
+    function renderKeyboard() {
+      // Figure out which key to highlight
+      let highlightKey = null;
+      if (!exerciseDone && typed.length < targetText.length) {
+        const nextChar = targetText[typed.length];
+        if (nextChar === ' ') {
+          highlightKey = 'space';
+        } else {
+          // Find which English key produces this Thai char
+          for (const [eng, thai] of Object.entries(KEDMANEE)) {
+            if (thai === nextChar) { highlightKey = eng; break; }
+          }
+          if (!highlightKey) {
+            for (const [eng, thai] of Object.entries(KEDMANEE_SHIFT)) {
+              if (thai === nextChar) { highlightKey = 'shift+' + eng.toLowerCase(); break; }
+            }
+          }
+        }
+      }
+
+      let html = '';
+      for (const row of KB_ROWS) {
+        html += '<div class="kb-row">';
+        for (const [eng, thai, thaiShift] of row) {
+          const isSpace = eng === 'space';
+          const isActive = highlightKey === eng || highlightKey === eng.toLowerCase();
+          const cls = [
+            'kb-key',
+            isSpace ? 'space' : '',
+            isActive ? 'active' : ''
+          ].filter(Boolean).join(' ');
+
+          if (isSpace) {
+            html += `<div class="${cls}"><span class="thai-main">Space</span></div>`;
+          } else {
+            html += `<div class="${cls}" data-key="${eng}">` +
+              `<span class="thai-shift">${thaiShift}</span>` +
+              `<span class="thai-main">${thai}</span>` +
+              `<span class="eng-label">${eng}</span>` +
+              `</div>`;
+          }
+        }
+        html += '</div>';
+      }
+      keyboardEl.innerHTML = html;
+    }
+
+    // Patch renderTarget to also update keyboard
+    const origRenderTarget = renderTarget;
+    function renderTargetAndKeyboard() {
+      origRenderTarget();
+      renderKeyboard();
+    }
+    // Replace all calls
+    renderTarget = renderTargetAndKeyboard;
+
+    startExercise();
   </script>
 </body>
 </html>
