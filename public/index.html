@@ -166,6 +166,84 @@
     .kb-key.wide { width: 66px; }
     .kb-key.space { width: 240px; }
 
+    /* Lesson selection screen */
+    #lesson-screen {
+      max-width: 600px;
+      width: 100%;
+    }
+    #lesson-screen h2 {
+      margin: 0 0 16px;
+      color: #333;
+    }
+    .lesson-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .lesson-item {
+      padding: 14px 18px;
+      margin-bottom: 8px;
+      background: white;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .lesson-item:hover { border-color: #4CAF50; }
+    .lesson-item.locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .lesson-item.locked:hover { border-color: #ddd; }
+    .lesson-item.current {
+      border-color: #4CAF50;
+      background: #f0faf0;
+    }
+    .lesson-item .lesson-name {
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: #333;
+    }
+    .lesson-item .lesson-chars {
+      font-size: 1.2rem;
+      color: #555;
+      letter-spacing: 4px;
+    }
+    .lesson-item .lesson-status {
+      font-size: 0.85rem;
+      color: #999;
+    }
+    .lesson-item .lesson-status.passed {
+      color: #4CAF50;
+      font-weight: bold;
+    }
+
+    /* Exercise screen */
+    #exercise-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+    #round-indicator {
+      font-size: 0.9rem;
+      color: #888;
+      margin-bottom: 12px;
+    }
+    #back-to-lessons {
+      margin-bottom: 16px;
+      padding: 6px 16px;
+      font-size: 0.85rem;
+      background: none;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #666;
+    }
+    #back-to-lessons:hover { border-color: #999; color: #333; }
+
     .hint {
       margin-top: 12px;
       color: #888;
@@ -175,24 +253,35 @@
 </head>
 <body>
   <h1>Thai Typing Tutor</h1>
-  <div id="mode-indicator" class="thai">TH</div>
-  <div id="target-text"></div>
-  <div id="typing-area" contenteditable="true" autofocus></div>
-  <div id="key-tracker">
-    <div id="correction-row"></div>
-    <div id="keys-row"></div>
-    <div id="position-row"></div>
+  <!-- Lesson selection screen -->
+  <div id="lesson-screen">
+    <h2>Lessons</h2>
+    <ul class="lesson-list" id="lesson-list"></ul>
   </div>
-  <div id="summary">
-    <h2>Summary</h2>
-    <div class="stats">
-      Accuracy: <span id="accuracy">0</span>%<br>
-      Time: <span id="time-taken">0</span> seconds
+
+  <!-- Exercise screen -->
+  <div id="exercise-screen">
+    <button id="back-to-lessons">&larr; Lessons</button>
+    <div id="mode-indicator" class="thai">TH</div>
+    <div id="round-indicator"></div>
+    <div id="target-text"></div>
+    <div id="typing-area" contenteditable="true"></div>
+    <div id="key-tracker">
+      <div id="correction-row"></div>
+      <div id="keys-row"></div>
+      <div id="position-row"></div>
     </div>
-    <button id="restart-btn">Try Again</button>
+    <div id="summary">
+      <h2>Summary</h2>
+      <div class="stats">
+        Accuracy: <span id="accuracy">0</span>%<br>
+        Time: <span id="time-taken">0</span> seconds
+      </div>
+      <button id="restart-btn">Try Again</button>
+    </div>
+    <div id="keyboard"></div>
+    <div class="hint">Esc = สลับ TH / EN</div>
   </div>
-  <div id="keyboard"></div>
-  <div class="hint">Esc = สลับ TH / EN</div>
 
   <script>
     const KEDMANEE = {
@@ -221,6 +310,17 @@
       'M': '?', '<': 'ฒ', '>': 'ฬ', '?': 'ฦ'
     };
 
+    // Lesson definitions
+    const LESSONS = [
+      { id: 1, name: 'Lesson 1', newChars: 'ก ด น ม', words: ['กด', 'นก', 'กน', 'ดม', 'มด', 'นม'] },
+      { id: 2, name: 'Lesson 2', newChars: 'า ส ว ร', words: ['กาว', 'นาม', 'สาร', 'ดาว', 'วาร', 'มาร', 'กาม', 'นาว'] },
+      { id: 3, name: 'Lesson 3', newChars: 'ี ห ต ล', words: ['ดีล', 'หมาก', 'ตาล', 'หาร', 'สีดา', 'ตาม', 'หลาม', 'ลาน'] },
+      { id: 4, name: 'Lesson 4', newChars: '่ ้ ง อ', words: ['น้อง', 'ของ', 'งาน', 'อ่าน', 'ง่าย', 'ล้าง', 'อาหาร', 'น้อง'] },
+      { id: 5, name: 'Lesson 5', newChars: 'เ ย ข ป', words: ['เงิน', 'ขาย', 'ปาก', 'เขา', 'เปล', 'ขยาย', 'ปลา', 'เมย'] },
+      { id: 6, name: 'Lesson 6', newChars: '็ ุ ู ไ', words: ['ไม้', 'กุน', 'ดูก', 'ไหม', 'สุด', 'รู้', 'ไกล', 'หมุน'] },
+      { id: 7, name: 'Lesson 7', newChars: 'พ บ ช ท ค', words: ['พบ', 'ชาย', 'คนดี', 'ทาง', 'บาท', 'พาย', 'ชน', 'ทุก'] },
+    ];
+
     // Reverse lookup: Thai char -> English key
     const THAI_TO_KEY = {};
     for (const [eng, thai] of Object.entries(KEDMANEE)) {
@@ -231,8 +331,26 @@
     }
     THAI_TO_KEY[' '] = '␣';
 
+    // Progress from localStorage
+    function loadProgress() {
+      try {
+        return JSON.parse(localStorage.getItem('thaiTyperProgress')) || { passed: [] };
+      } catch { return { passed: [] }; }
+    }
+    function saveProgress(progress) {
+      localStorage.setItem('thaiTyperProgress', JSON.stringify(progress));
+    }
+
+    // Screen elements
+    const lessonScreen = document.getElementById('lesson-screen');
+    const exerciseScreen = document.getElementById('exercise-screen');
+    const lessonListEl = document.getElementById('lesson-list');
+
     // Exercise state
-    const SAMPLE_TEXTS = ['กด นก', 'กาว นาม', 'นก กด มา', 'สาร ดาว กาม'];
+    const ROUNDS_PER_LESSON = 3;
+    let currentLesson = null;
+    let currentRound = 0;
+    let roundResults = []; // {accuracy, time} per round
     let targetText = '';
     let typed = [];
     let keyLog = [];
@@ -246,17 +364,83 @@
     const positionRow = document.getElementById('position-row');
     const summaryEl = document.getElementById('summary');
     const modeIndicator = document.getElementById('mode-indicator');
+    const roundIndicator = document.getElementById('round-indicator');
 
     let thaiMode = true;
 
+    // --- Lesson screen ---
+    function showLessonScreen() {
+      lessonScreen.style.display = 'block';
+      exerciseScreen.style.display = 'none';
+      renderLessonList();
+    }
+
+    function renderLessonList() {
+      const progress = loadProgress();
+      let html = '';
+      for (let i = 0; i < LESSONS.length; i++) {
+        const lesson = LESSONS[i];
+        const passed = progress.passed.includes(lesson.id);
+        const unlocked = i === 0 || progress.passed.includes(LESSONS[i - 1].id);
+        const isNext = unlocked && !passed;
+
+        let cls = 'lesson-item';
+        if (!unlocked) cls += ' locked';
+        if (isNext) cls += ' current';
+
+        const statusText = passed ? 'Passed' : (unlocked ? 'Ready' : 'Locked');
+        const statusCls = passed ? 'passed' : '';
+
+        html += `<li class="${cls}" data-lesson="${i}" ${!unlocked ? '' : ''}>
+          <div>
+            <div class="lesson-name">${lesson.name}</div>
+            <div class="lesson-chars">${lesson.newChars}</div>
+          </div>
+          <div class="lesson-status ${statusCls}">${statusText}</div>
+        </li>`;
+      }
+      lessonListEl.innerHTML = html;
+
+      // Add click handlers
+      lessonListEl.querySelectorAll('.lesson-item:not(.locked)').forEach(el => {
+        el.addEventListener('click', () => {
+          const idx = parseInt(el.dataset.lesson);
+          startLesson(LESSONS[idx]);
+        });
+      });
+    }
+
+    // --- Exercise ---
+    function startLesson(lesson) {
+      currentLesson = lesson;
+      currentRound = 0;
+      roundResults = [];
+      lessonScreen.style.display = 'none';
+      exerciseScreen.style.display = 'flex';
+      startExercise();
+    }
+
+    function pickExerciseText() {
+      // Pick 2-3 random words from the lesson
+      const words = currentLesson.words;
+      const count = 2 + Math.floor(Math.random() * 2); // 2 or 3 words
+      const picked = [];
+      for (let i = 0; i < count; i++) {
+        picked.push(words[Math.floor(Math.random() * words.length)]);
+      }
+      return picked.join(' ');
+    }
+
     function startExercise() {
-      targetText = SAMPLE_TEXTS[Math.floor(Math.random() * SAMPLE_TEXTS.length)];
+      currentRound++;
+      targetText = pickExerciseText();
       typed = [];
       keyLog = [];
       startTime = null;
       exerciseDone = false;
       typingArea.textContent = '';
       summaryEl.style.display = 'none';
+      roundIndicator.textContent = `${currentLesson.name}: ${currentLesson.newChars} — Round ${currentRound}/${ROUNDS_PER_LESSON}`;
       renderTarget();
       renderTracker();
       typingArea.focus();
@@ -323,15 +507,95 @@
 
     function showSummary() {
       exerciseDone = true;
+      if (!startTime) startTime = Date.now();
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
       let correct = 0;
       for (let i = 0; i < targetText.length; i++) {
         if (typed[i] === targetText[i]) correct++;
       }
       const acc = Math.round((correct / targetText.length) * 100);
-      document.getElementById('accuracy').textContent = acc;
-      document.getElementById('time-taken').textContent = elapsed;
-      summaryEl.style.display = 'block';
+      const passed = acc >= 80;
+
+      if (!passed) {
+        // Failed this round — must redo
+        summaryEl.innerHTML = `
+          <h2>Round ${currentRound}/${ROUNDS_PER_LESSON}</h2>
+          <div class="stats">
+            Accuracy: <span>${acc}</span>% — Need 80% to pass<br>
+            Time: <span>${elapsed}</span> seconds
+          </div>
+          <div style="color:#e53935;font-weight:bold;margin-top:12px">Try this round again!</div>
+          <button id="restart-btn" style="margin-top:16px;padding:10px 24px;font-size:1rem;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer">
+            Retry Round (Enter)
+          </button>
+        `;
+        document.getElementById('restart-btn').addEventListener('click', () => {
+          currentRound--; // will be incremented back in startExercise
+          startExercise();
+        });
+        summaryEl.style.display = 'block';
+        return;
+      }
+
+      // Passed this round
+      roundResults.push({ accuracy: acc, time: parseFloat(elapsed) });
+
+      if (currentRound < ROUNDS_PER_LESSON) {
+        // More rounds to go
+        summaryEl.innerHTML = `
+          <h2>Round ${currentRound}/${ROUNDS_PER_LESSON}</h2>
+          <div class="stats">
+            Accuracy: <span>${acc}</span>%<br>
+            Time: <span>${elapsed}</span> seconds
+          </div>
+          <div style="color:#4CAF50;font-weight:bold;margin-top:12px">Passed!</div>
+          <button id="restart-btn" style="margin-top:16px;padding:10px 24px;font-size:1rem;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer">
+            Next Round (Enter)
+          </button>
+        `;
+        document.getElementById('restart-btn').addEventListener('click', startExercise);
+        summaryEl.style.display = 'block';
+      } else {
+        // All rounds done — show lesson summary
+        const avgAcc = Math.round(roundResults.reduce((s, r) => s + r.accuracy, 0) / roundResults.length);
+        const avgTime = (roundResults.reduce((s, r) => s + r.time, 0) / roundResults.length).toFixed(1);
+
+        const progress = loadProgress();
+        if (!progress.passed.includes(currentLesson.id)) {
+          progress.passed.push(currentLesson.id);
+          saveProgress(progress);
+        }
+
+        const extraInfo = roundResults.map((r, i) =>
+          `Round ${i + 1}: ${r.accuracy}% — ${r.time}s`
+        ).join('<br>');
+
+        const nextIdx = LESSONS.findIndex(l => l.id === currentLesson.id) + 1;
+        const hasNext = nextIdx < LESSONS.length;
+
+        summaryEl.innerHTML = `
+          <h2>Lesson Complete!</h2>
+          <div class="stats">
+            Average Accuracy: <span>${avgAcc}</span>%<br>
+            Average Time: <span>${avgTime}</span>s<br><br>
+            ${extraInfo}
+          </div>
+          <div style="color:#4CAF50;font-weight:bold;margin-top:12px">
+            ${hasNext ? `Next up: ${LESSONS[nextIdx].name} — ${LESSONS[nextIdx].newChars}` : 'All lessons complete!'}
+          </div>
+          <button id="restart-btn" style="margin-top:16px;padding:10px 24px;font-size:1rem;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer">
+            ${hasNext ? 'Next Lesson (Enter)' : 'Back to Lessons (Enter)'}
+          </button>
+        `;
+        document.getElementById('restart-btn').addEventListener('click', () => {
+          if (hasNext) {
+            startLesson(LESSONS[nextIdx]);
+          } else {
+            showLessonScreen();
+          }
+        });
+        summaryEl.style.display = 'block';
+      }
     }
 
     function updateModeIndicator() {
@@ -347,6 +611,7 @@
         return;
       }
 
+      if (e.key === 'Enter') { e.preventDefault(); return; }
       if (!thaiMode || exerciseDone) return;
 
       if (e.key === 'Backspace') {
@@ -391,6 +656,15 @@
     });
 
     document.getElementById('restart-btn').addEventListener('click', startExercise);
+    document.getElementById('back-to-lessons').addEventListener('click', showLessonScreen);
+
+    // Enter key to advance when exercise is done
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && exerciseDone) {
+        e.preventDefault();
+        document.getElementById('restart-btn').click();
+      }
+    });
 
     // Keyboard layout: each row is an array of [englishKey, thaiNormal, thaiShift]
     const KB_ROWS = [
@@ -459,7 +733,18 @@
     // Replace all calls
     renderTarget = renderTargetAndKeyboard;
 
-    startExercise();
+    // Auto-start: pick the next unfinished lesson, or show lesson list
+    (function autoStart() {
+      const progress = loadProgress();
+      const nextLesson = LESSONS.find((l, i) =>
+        !progress.passed.includes(l.id) && (i === 0 || progress.passed.includes(LESSONS[i - 1].id))
+      );
+      if (nextLesson) {
+        startLesson(nextLesson);
+      } else {
+        showLessonScreen();
+      }
+    })();
   </script>
 </body>
 </html>
