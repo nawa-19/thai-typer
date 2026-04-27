@@ -166,6 +166,59 @@
     .kb-key.wide { width: 66px; }
     .kb-key.space { width: 240px; }
 
+    /* Finger-to-key color coding (touch typing standard) */
+    .kb-key.f-lp { background: #E1BEE7; } /* left pinky - purple */
+    .kb-key.f-lr { background: #C5CAE9; } /* left ring - indigo */
+    .kb-key.f-lm { background: #C8E6C9; } /* left middle - green */
+    .kb-key.f-li { background: #FFF9C4; } /* left index - yellow */
+    .kb-key.f-ri { background: #FFE0B2; } /* right index - orange */
+    .kb-key.f-rm { background: #F8BBD0; } /* right middle - pink */
+    .kb-key.f-rr { background: #B2EBF2; } /* right ring - cyan */
+    .kb-key.f-rp { background: #FFCDD2; } /* right pinky - red */
+    .kb-key.f-th { background: #EEEEEE; } /* thumb - gray */
+    /* Active state overrides finger color */
+    .kb-key.active.f-lp, .kb-key.active.f-lr, .kb-key.active.f-lm,
+    .kb-key.active.f-li, .kb-key.active.f-ri, .kb-key.active.f-rm,
+    .kb-key.active.f-rr, .kb-key.active.f-rp, .kb-key.active.f-th { background: #4CAF50; }
+
+    #finger-legend {
+      margin-top: 10px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      font-size: 0.7rem;
+      color: #555;
+    }
+    #finger-legend .leg-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    #finger-legend .leg-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      border: 1px solid #ccc;
+    }
+
+    /* Round progress bar */
+    #round-progress {
+      max-width: 600px;
+      width: 100%;
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .round-pip {
+      flex: 1;
+      height: 6px;
+      border-radius: 3px;
+      background: #ddd;
+    }
+    .round-pip.done { background: #4CAF50; }
+    .round-pip.current { background: #FFC107; }
+
     /* Lesson selection screen */
     #lesson-screen {
       max-width: 600px;
@@ -252,7 +305,8 @@
   </style>
 </head>
 <body>
-  <h1>Thai Typing Tutor 🇹🇭</h1>
+  <h1 style="margin-bottom:4px">Thai Typing Tutor 🇹🇭</h1>
+  <p style="margin:0 0 24px;color:#666;font-size:0.95rem;text-align:center;max-width:600px">Touch-type Thai without looking at the keys (or without a Thai keyboard at all)</p>
   <!-- Lesson selection screen -->
   <div id="lesson-screen">
     <div style="display:flex;justify-content:space-between;align-items:center;max-width:600px;width:100%">
@@ -269,6 +323,7 @@
     <button id="back-to-lessons">&larr; Lessons</button>
     <div id="mode-indicator" class="thai">TH</div>
     <div id="round-indicator"></div>
+    <div id="round-progress"></div>
     <div id="target-text"></div>
     <div id="typing-area" contenteditable="true"></div>
     <div id="key-tracker">
@@ -285,6 +340,7 @@
       <button id="restart-btn">Try Again</button>
     </div>
     <div id="keyboard"></div>
+    <div id="finger-legend"></div>
     <div class="hint">Esc = สลับ TH / EN</div>
   </div>
 
@@ -526,6 +582,19 @@
       return picked.join(' ');
     }
 
+    function renderRoundProgress() {
+      const el = document.getElementById('round-progress');
+      if (!el) return;
+      let html = '';
+      for (let i = 1; i <= ROUNDS_PER_LESSON; i++) {
+        let cls = 'round-pip';
+        if (i < currentRound) cls += ' done';
+        else if (i === currentRound) cls += ' current';
+        html += `<div class="${cls}"></div>`;
+      }
+      el.innerHTML = html;
+    }
+
     function startExercise() {
       currentRound++;
       targetText = pickExerciseText();
@@ -537,6 +606,7 @@
       typingArea.textContent = '';
       summaryEl.style.display = 'none';
       roundIndicator.textContent = `${currentLesson.name}: ${currentLesson.newChars} — Round ${currentRound}/${ROUNDS_PER_LESSON}`;
+      renderRoundProgress();
       renderTarget();
       renderTracker();
       typingArea.focus();
@@ -628,7 +698,17 @@
         ? (wordTimes.reduce((a, b) => a + b, 0) / wordTimes.length).toFixed(2)
         : '0';
 
-      return { avgPerChar, avgPerWord };
+      // WPM: standard formula = (chars / 5) / minutes elapsed.
+      // Use only typed (non-space) char count and total elapsed since startTime.
+      const lastT = charTimes[charTimes.length - 1];
+      let wpm = 0;
+      if (lastT && startTime) {
+        const minutes = (lastT - startTime) / 60000;
+        const charCount = typed.filter(c => c !== ' ').length;
+        if (minutes > 0) wpm = Math.round((charCount / 5) / minutes);
+      }
+
+      return { avgPerChar, avgPerWord, wpm };
     }
 
     function showSummary() {
@@ -651,7 +731,7 @@
           <h2>Round ${currentRound}/${ROUNDS_PER_LESSON}</h2>
           <div class="stats">
             Accuracy: <span>${acc}</span>%<br>
-            Time: <span>${elapsed}</span>s &nbsp; Avg/char: <span>${timing.avgPerChar}</span>s &nbsp; Avg/word: <span>${timing.avgPerWord}</span>s
+            Time: <span>${elapsed}</span>s &nbsp; WPM: <span>${timing.wpm}</span> &nbsp; Avg/char: <span>${timing.avgPerChar}</span>s &nbsp; Avg/word: <span>${timing.avgPerWord}</span>s
           </div>
           <div style="color:#e53935;font-weight:bold;margin-top:12px">
             ${acc < 80 ? 'Need 80% accuracy to pass.' : ''}
@@ -671,7 +751,7 @@
       }
 
       // Passed this round
-      roundResults.push({ accuracy: acc, time: parseFloat(elapsed), avgPerChar: parseFloat(timing.avgPerChar), avgPerWord: parseFloat(timing.avgPerWord) });
+      roundResults.push({ accuracy: acc, time: parseFloat(elapsed), avgPerChar: parseFloat(timing.avgPerChar), avgPerWord: parseFloat(timing.avgPerWord), wpm: timing.wpm });
 
       if (currentRound < ROUNDS_PER_LESSON) {
         // More rounds to go
@@ -679,7 +759,7 @@
           <h2>Round ${currentRound}/${ROUNDS_PER_LESSON}</h2>
           <div class="stats">
             Accuracy: <span>${acc}</span>%<br>
-            Time: <span>${elapsed}</span>s &nbsp; Avg/char: <span>${timing.avgPerChar}</span>s &nbsp; Avg/word: <span>${timing.avgPerWord}</span>s
+            Time: <span>${elapsed}</span>s &nbsp; WPM: <span>${timing.wpm}</span> &nbsp; Avg/char: <span>${timing.avgPerChar}</span>s &nbsp; Avg/word: <span>${timing.avgPerWord}</span>s
           </div>
           <div style="color:#4CAF50;font-weight:bold;margin-top:12px">Passed!</div>
           <button id="restart-btn" style="margin-top:16px;padding:10px 24px;font-size:1rem;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer">
@@ -694,6 +774,7 @@
         const avgTime = (roundResults.reduce((s, r) => s + r.time, 0) / roundResults.length).toFixed(1);
         const avgCharTime = (roundResults.reduce((s, r) => s + r.avgPerChar, 0) / roundResults.length).toFixed(2);
         const avgWordTime = (roundResults.reduce((s, r) => s + r.avgPerWord, 0) / roundResults.length).toFixed(2);
+        const avgWpm = Math.round(roundResults.reduce((s, r) => s + (r.wpm || 0), 0) / roundResults.length);
 
         const progress = loadProgress();
         if (!progress.passed.includes(currentLesson.id)) {
@@ -702,7 +783,7 @@
         }
 
         const extraInfo = roundResults.map((r, i) =>
-          `Round ${i + 1}: ${r.accuracy}% — ${r.time}s (${r.avgPerChar}s/char, ${r.avgPerWord}s/word)`
+          `Round ${i + 1}: ${r.accuracy}% — ${r.time}s, ${r.wpm || 0} WPM (${r.avgPerChar}s/char, ${r.avgPerWord}s/word)`
         ).join('<br>');
 
         const nextIdx = LESSONS.findIndex(l => l.id === currentLesson.id) + 1;
@@ -712,6 +793,7 @@
           <h2>Lesson Complete!</h2>
           <div class="stats">
             Average Accuracy: <span>${avgAcc}</span>%<br>
+            Average WPM: <span>${avgWpm}</span><br>
             Average Time: <span>${avgTime}</span>s &nbsp; Avg/char: <span>${avgCharTime}</span>s &nbsp; Avg/word: <span>${avgWordTime}</span>s<br><br>
             ${extraInfo}
           </div>
@@ -871,6 +953,24 @@
       [['space',' ',' ']]
     ];
 
+    // Touch-typing finger assignments (QWERTY standard)
+    const FINGER_MAP = {
+      '`':'f-lp','1':'f-lp','q':'f-lp','a':'f-lp','z':'f-lp',
+      '2':'f-lr','w':'f-lr','s':'f-lr','x':'f-lr',
+      '3':'f-lm','e':'f-lm','d':'f-lm','c':'f-lm',
+      '4':'f-li','5':'f-li','r':'f-li','t':'f-li','f':'f-li','g':'f-li','v':'f-li','b':'f-li',
+      '6':'f-ri','7':'f-ri','y':'f-ri','u':'f-ri','h':'f-ri','j':'f-ri','n':'f-ri','m':'f-ri',
+      '8':'f-rm','i':'f-rm','k':'f-rm',',':'f-rm',
+      '9':'f-rr','o':'f-rr','l':'f-rr','.':'f-rr',
+      '0':'f-rp','-':'f-rp','=':'f-rp','p':'f-rp','[':'f-rp',']':'f-rp','\\':'f-rp',';':'f-rp',"'":'f-rp','/':'f-rp',
+      'space':'f-th'
+    };
+    const FINGER_LEGEND = [
+      ['f-lp','L pinky'],['f-lr','L ring'],['f-lm','L middle'],['f-li','L index'],
+      ['f-ri','R index'],['f-rm','R middle'],['f-rr','R ring'],['f-rp','R pinky'],
+      ['f-th','Thumbs']
+    ];
+
     const keyboardEl = document.getElementById('keyboard');
 
     function renderKeyboard() {
@@ -899,9 +999,11 @@
         for (const [eng, thai, thaiShift] of row) {
           const isSpace = eng === 'space';
           const isActive = highlightKey === eng || highlightKey === eng.toLowerCase();
+          const fingerCls = FINGER_MAP[eng] || '';
           const cls = [
             'kb-key',
             isSpace ? 'space' : '',
+            fingerCls,
             isActive ? 'active' : ''
           ].filter(Boolean).join(' ');
 
@@ -918,6 +1020,14 @@
         html += '</div>';
       }
       keyboardEl.innerHTML = html;
+      // Render finger legend (once)
+      const legendEl = document.getElementById('finger-legend');
+      if (legendEl && !legendEl.dataset.rendered) {
+        legendEl.innerHTML = FINGER_LEGEND.map(([cls, label]) =>
+          `<div class="leg-item"><div class="leg-swatch ${cls}"></div>${label}</div>`
+        ).join('');
+        legendEl.dataset.rendered = '1';
+      }
     }
 
     // Patch renderTarget to also update keyboard
