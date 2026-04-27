@@ -12,8 +12,133 @@
       align-items: center;
       min-height: 100vh;
       margin: 0;
-      padding: 40px 20px;
+      padding: 40px 20px 40px 260px;
       background: #f5f5f5;
+    }
+    @media (max-width: 768px) {
+      body { padding: 40px 20px; }
+      #sidebar { transform: translateX(-100%); transition: transform 0.2s; }
+      #sidebar.open { transform: translateX(0); }
+      #sidebar-toggle { display: block !important; }
+    }
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 240px;
+      height: 100vh;
+      background: white;
+      border-right: 1px solid #ddd;
+      box-shadow: 2px 0 6px rgba(0,0,0,0.04);
+      padding: 20px 14px;
+      overflow-y: auto;
+      box-sizing: border-box;
+      z-index: 100;
+    }
+    #sidebar h3 {
+      margin: 0 0 14px;
+      font-size: 0.85rem;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .sb-lesson {
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      font-size: 0.9rem;
+    }
+    .sb-lesson:hover { background: #f5f5f5; }
+    .sb-lesson.active { background: #e8f5e9; border-color: #4CAF50; }
+    .sb-lesson .sb-name { font-weight: bold; color: #333; }
+    .sb-lesson .sb-chars { font-size: 0.85rem; color: #666; margin-top: 2px; }
+    .sb-lesson .sb-status {
+      display: inline-block;
+      font-size: 0.7rem;
+      padding: 1px 6px;
+      border-radius: 8px;
+      margin-top: 4px;
+    }
+    .sb-lesson .sb-status.passed { background: #4CAF50; color: white; }
+    .sb-lesson .sb-status.next { background: #FFC107; color: #333; }
+    .sb-lesson .sb-status.locked { background: #eee; color: #999; }
+    #sidebar-toggle {
+      display: none;
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 101;
+      padding: 8px 12px;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    #skip-warning {
+      max-width: 600px;
+      width: 100%;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 6px;
+      color: #856404;
+      font-size: 0.9rem;
+      display: none;
+    }
+
+    /* Hands visualization */
+    #hands {
+      margin-top: 14px;
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+    }
+    .hand {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .hand-fingers {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+    }
+    .finger {
+      width: 22px;
+      border: 1.5px solid #999;
+      border-radius: 11px 11px 4px 4px;
+      background: #f5f5f5;
+      transition: all 0.15s;
+    }
+    .finger.active {
+      background: #4CAF50;
+      border-color: #2E7D32;
+      box-shadow: 0 0 10px rgba(76,175,80,0.6);
+    }
+    /* Finger heights mimic real hands */
+    .finger.pinky  { height: 56px; }
+    .finger.ring   { height: 72px; }
+    .finger.middle { height: 80px; }
+    .finger.index  { height: 70px; }
+    .finger.thumb  { height: 36px; width: 26px; border-radius: 13px; margin-bottom: 8px; }
+    .palm {
+      width: 110px;
+      height: 50px;
+      border: 1.5px solid #999;
+      border-top: none;
+      border-radius: 0 0 30px 30px;
+      background: #f5f5f5;
+      margin-top: -2px;
+    }
+    .hand-label {
+      margin-top: 6px;
+      font-size: 0.75rem;
+      color: #888;
     }
     h1 {
       font-size: 2rem;
@@ -305,6 +430,11 @@
   </style>
 </head>
 <body>
+  <button id="sidebar-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+  <aside id="sidebar">
+    <h3>All Lessons</h3>
+    <div id="sidebar-list"></div>
+  </aside>
   <h1 style="margin-bottom:4px">Thai Typing Tutor 🇹🇭</h1>
   <p style="margin:0 0 24px;color:#666;font-size:0.95rem;text-align:center;max-width:600px">Touch-type Thai without looking at the keys (or without a Thai keyboard at all)</p>
   <!-- Lesson selection screen -->
@@ -322,6 +452,7 @@
   <div id="exercise-screen">
     <button id="back-to-lessons">&larr; Lessons</button>
     <div id="mode-indicator" class="thai">TH</div>
+    <div id="skip-warning"></div>
     <div id="round-indicator"></div>
     <div id="round-progress"></div>
     <div id="target-text"></div>
@@ -340,7 +471,7 @@
       <button id="restart-btn">Try Again</button>
     </div>
     <div id="keyboard"></div>
-    <div id="finger-legend"></div>
+    <div id="hands"></div>
     <div class="hint">Esc = สลับ TH / EN</div>
   </div>
 
@@ -477,7 +608,9 @@
     function showLessonScreen() {
       lessonScreen.style.display = 'block';
       exerciseScreen.style.display = 'none';
+      currentLesson = null;
       renderLessonList();
+      renderSidebar();
     }
 
     function renderLessonList() {
@@ -555,6 +688,8 @@
       roundResults = [];
       lessonScreen.style.display = 'none';
       exerciseScreen.style.display = 'flex';
+      checkSkipWarning(lesson);
+      renderSidebar();
       // Fetch AI words in background, don't block
       fetchAIWords(lesson);
       startExercise();
@@ -953,6 +1088,53 @@
       [['space',' ',' ']]
     ];
 
+    // --- Sidebar ---
+    function renderSidebar() {
+      const el = document.getElementById('sidebar-list');
+      if (!el) return;
+      const progress = loadProgress();
+      let html = '';
+      for (let i = 0; i < LESSONS.length; i++) {
+        const lesson = LESSONS[i];
+        const passed = progress.passed.includes(lesson.id);
+        const unlocked = i === 0 || progress.passed.includes(LESSONS[i - 1].id);
+        const isActive = currentLesson && currentLesson.id === lesson.id;
+        const status = passed ? 'Passed' : (unlocked ? 'Next' : 'Locked');
+        const statusCls = passed ? 'passed' : (unlocked ? 'next' : 'locked');
+        html += `<div class="sb-lesson ${isActive ? 'active' : ''}" data-idx="${i}">
+          <div class="sb-name">${lesson.name}</div>
+          <div class="sb-chars">${lesson.newChars}</div>
+          <span class="sb-status ${statusCls}">${status}</span>
+        </div>`;
+      }
+      el.innerHTML = html;
+      el.querySelectorAll('.sb-lesson').forEach(item => {
+        item.addEventListener('click', () => {
+          const idx = parseInt(item.dataset.idx);
+          startLesson(LESSONS[idx]);
+          // close sidebar on mobile
+          document.getElementById('sidebar').classList.remove('open');
+        });
+      });
+    }
+
+    function checkSkipWarning(lesson) {
+      const idx = LESSONS.findIndex(l => l.id === lesson.id);
+      const progress = loadProgress();
+      const skipWarn = document.getElementById('skip-warning');
+      // Find first unpassed lesson before this one
+      let skippedLessons = [];
+      for (let i = 0; i < idx; i++) {
+        if (!progress.passed.includes(LESSONS[i].id)) skippedLessons.push(LESSONS[i].name);
+      }
+      if (skippedLessons.length > 0) {
+        skipWarn.innerHTML = `⚠️ Skipping ahead — you haven't passed ${skippedLessons.join(', ')} yet. You may not know all the characters in this lesson.`;
+        skipWarn.style.display = 'block';
+      } else {
+        skipWarn.style.display = 'none';
+      }
+    }
+
     // Touch-typing finger assignments (QWERTY standard)
     const FINGER_MAP = {
       '`':'f-lp','1':'f-lp','q':'f-lp','a':'f-lp','z':'f-lp',
@@ -970,6 +1152,77 @@
       ['f-ri','R index'],['f-rm','R middle'],['f-rr','R ring'],['f-rp','R pinky'],
       ['f-th','Thumbs']
     ];
+
+    function renderHands() {
+      const el = document.getElementById('hands');
+      if (!el) return;
+      // Determine which finger should press the next key
+      let activeFinger = null; // e.g. 'f-lp'
+      let needsShift = false;
+      if (!exerciseDone && typed.length < targetText.length) {
+        const nextChar = targetText[typed.length];
+        if (nextChar === ' ') {
+          activeFinger = 'f-th';
+        } else {
+          // Find English key
+          let engKey = null;
+          for (const [eng, thai] of Object.entries(KEDMANEE)) {
+            if (thai === nextChar) { engKey = eng; break; }
+          }
+          if (!engKey) {
+            for (const [eng, thai] of Object.entries(KEDMANEE_SHIFT)) {
+              if (thai === nextChar) { engKey = eng.toLowerCase(); needsShift = true; break; }
+            }
+          }
+          if (engKey) activeFinger = FINGER_MAP[engKey] || null;
+        }
+      }
+      // For shift, the OPPOSITE pinky also activates
+      let shiftFinger = null;
+      if (needsShift && activeFinger) {
+        // If active finger is on left hand, shift = right pinky; else left pinky
+        if (['f-lp','f-lr','f-lm','f-li'].includes(activeFinger)) shiftFinger = 'f-rp';
+        else shiftFinger = 'f-lp';
+      }
+
+      // Left hand fingers (left-to-right): pinky, ring, middle, index, thumb
+      // Right hand: thumb, index, middle, ring, pinky
+      const leftFingers = [
+        { cls: 'pinky',  finger: 'f-lp' },
+        { cls: 'ring',   finger: 'f-lr' },
+        { cls: 'middle', finger: 'f-lm' },
+        { cls: 'index',  finger: 'f-li' },
+        { cls: 'thumb',  finger: 'f-th' },
+      ];
+      const rightFingers = [
+        { cls: 'thumb',  finger: 'f-th' },
+        { cls: 'index',  finger: 'f-ri' },
+        { cls: 'middle', finger: 'f-rm' },
+        { cls: 'ring',   finger: 'f-rr' },
+        { cls: 'pinky',  finger: 'f-rp' },
+      ];
+
+      // For thumbs, only activate the appropriate side
+      function isFingerActive(fcls, side) {
+        if (fcls === 'f-th') {
+          // Only activate thumb if active finger is thumb (space) — show both
+          return activeFinger === 'f-th';
+        }
+        return activeFinger === fcls || shiftFinger === fcls;
+      }
+
+      const renderHand = (fingers, side, label) => {
+        let h = `<div class="hand"><div class="hand-fingers">`;
+        for (const f of fingers) {
+          const active = isFingerActive(f.finger, side) ? 'active' : '';
+          h += `<div class="finger ${f.cls} ${active}"></div>`;
+        }
+        h += `</div><div class="palm"></div><div class="hand-label">${label}</div></div>`;
+        return h;
+      };
+
+      el.innerHTML = renderHand(leftFingers, 'L', 'Left hand') + renderHand(rightFingers, 'R', 'Right hand');
+    }
 
     const keyboardEl = document.getElementById('keyboard');
 
@@ -1020,14 +1273,7 @@
         html += '</div>';
       }
       keyboardEl.innerHTML = html;
-      // Render finger legend (once)
-      const legendEl = document.getElementById('finger-legend');
-      if (legendEl && !legendEl.dataset.rendered) {
-        legendEl.innerHTML = FINGER_LEGEND.map(([cls, label]) =>
-          `<div class="leg-item"><div class="leg-swatch ${cls}"></div>${label}</div>`
-        ).join('');
-        legendEl.dataset.rendered = '1';
-      }
+      renderHands();
     }
 
     // Patch renderTarget to also update keyboard
@@ -1041,6 +1287,7 @@
 
     // Auto-start: pick the next unfinished lesson, or show lesson list
     (function autoStart() {
+      renderSidebar();
       const progress = loadProgress();
       const nextLesson = LESSONS.find((l, i) =>
         !progress.passed.includes(l.id) && (i === 0 || progress.passed.includes(LESSONS[i - 1].id))
