@@ -12,7 +12,7 @@
       align-items: center;
       min-height: 100vh;
       margin: 0;
-      padding: 40px 20px 40px 260px;
+      padding: 40px 20px 40px 200px;
       background: #f5f5f5;
     }
     @media (max-width: 768px) {
@@ -25,16 +25,17 @@
       position: fixed;
       top: 0;
       left: 0;
-      width: 240px;
+      width: 180px;
       height: 100vh;
       background: white;
       border-right: 1px solid #ddd;
       box-shadow: 2px 0 6px rgba(0,0,0,0.04);
-      padding: 20px 14px;
+      padding: 20px 10px;
       overflow-y: auto;
       box-sizing: border-box;
       z-index: 100;
     }
+    .sb-lesson { padding: 8px 10px; }
     #sidebar h3 {
       margin: 0 0 14px;
       font-size: 0.85rem;
@@ -109,9 +110,9 @@
       gap: 4px;
     }
     .finger {
-      width: 22px;
+      width: 20px;
       border: 1.5px solid #999;
-      border-radius: 11px 11px 4px 4px;
+      border-radius: 10px 10px 4px 4px;
       background: #f5f5f5;
       transition: all 0.15s;
     }
@@ -120,18 +121,18 @@
       border-color: #2E7D32;
       box-shadow: 0 0 10px rgba(76,175,80,0.6);
     }
-    /* Finger heights mimic real hands */
-    .finger.pinky  { height: 56px; }
-    .finger.ring   { height: 72px; }
-    .finger.middle { height: 80px; }
-    .finger.index  { height: 70px; }
-    .finger.thumb  { height: 36px; width: 26px; border-radius: 13px; margin-bottom: 8px; }
+    /* Finger heights mimic real hands (~10% smaller) */
+    .finger.pinky  { height: 50px; }
+    .finger.ring   { height: 65px; }
+    .finger.middle { height: 72px; }
+    .finger.index  { height: 63px; }
+    .finger.thumb  { height: 32px; width: 23px; border-radius: 12px; margin-bottom: 7px; }
     .palm {
-      width: 110px;
-      height: 50px;
+      width: 99px;
+      height: 45px;
       border: 1.5px solid #999;
       border-top: none;
-      border-radius: 0 0 30px 30px;
+      border-radius: 0 0 27px 27px;
       background: #f5f5f5;
       margin-top: -2px;
     }
@@ -291,20 +292,7 @@
     .kb-key.wide { width: 66px; }
     .kb-key.space { width: 240px; }
 
-    /* Finger-to-key color coding (touch typing standard) */
-    .kb-key.f-lp { background: #E1BEE7; } /* left pinky - purple */
-    .kb-key.f-lr { background: #C5CAE9; } /* left ring - indigo */
-    .kb-key.f-lm { background: #C8E6C9; } /* left middle - green */
-    .kb-key.f-li { background: #FFF9C4; } /* left index - yellow */
-    .kb-key.f-ri { background: #FFE0B2; } /* right index - orange */
-    .kb-key.f-rm { background: #F8BBD0; } /* right middle - pink */
-    .kb-key.f-rr { background: #B2EBF2; } /* right ring - cyan */
-    .kb-key.f-rp { background: #FFCDD2; } /* right pinky - red */
-    .kb-key.f-th { background: #EEEEEE; } /* thumb - gray */
-    /* Active state overrides finger color */
-    .kb-key.active.f-lp, .kb-key.active.f-lr, .kb-key.active.f-lm,
-    .kb-key.active.f-li, .kb-key.active.f-ri, .kb-key.active.f-rm,
-    .kb-key.active.f-rr, .kb-key.active.f-rp, .kb-key.active.f-th { background: #4CAF50; }
+    /* Finger-to-key color coding removed — only the active key is highlighted */
 
     #finger-legend {
       margin-top: 10px;
@@ -470,8 +458,8 @@
       </div>
       <button id="restart-btn">Try Again</button>
     </div>
-    <div id="keyboard"></div>
     <div id="hands"></div>
+    <div id="keyboard"></div>
     <div class="hint">Esc = สลับ TH / EN</div>
   </div>
 
